@@ -2,11 +2,10 @@
 #include "common.h"
 #include "test_runner_p.h"
 
-namespace
-{
-double ExecuteASTFormula(const std::string& expression) {
-    return ParseFormulaAST(expression).Execute();
-}
+namespace {
+    double ExecuteASTFormula(const std::string& expression) {
+        return ParseFormulaAST(expression).Execute();
+    }
 }  // namespace
 
 int main() {
@@ -21,4 +20,3 @@ int main() {
     std::cout << "Tests Passed" << std::endl;
     return 0;
 }
-
