@@ -3,6 +3,8 @@
 #include "common.h"
 #include "formula.h"
 
+#include <string>
+
 class Impl
 {
 public:
@@ -43,6 +45,7 @@ class Cell final : public CellInterface {
 public:
     Cell() = default;
     ~Cell() = default;
+    Cell(std::string text);
     void Set(std::string text) override;
     void Clear();
 

@@ -26,11 +26,25 @@ struct Position {
     static const Position NONE;
 };
 
+struct PositionHasher
+{
+    std::size_t operator()(const Position& pos) const
+    {
+        return (std::hash<int>()(pos.col) ^ (std::hash<int>()(pos.row)));
+    }
+};
+
 struct Size {
     int rows = 0;
     int cols = 0;
 
+    Size() = default;
+    Size(Size& other) = default;
+    Size(const Size& other) = default;
+    Size(Size&& other) = default;
     bool operator==(Size rhs) const;
+    Size& operator=(Size&& other) = default;
+    Size& operator=(const Size& other) = default;
 };
 
 // Описывает ошибки, которые могут возникнуть при вычислении формулы.

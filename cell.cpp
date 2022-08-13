@@ -37,6 +37,11 @@ std::string Cell::GetText() const
     return impl_->GetText();
 }
 
+Cell::Cell(std::string text)
+{
+    Set(std::move(text));
+}
+
 Impl::Value EmptyImpl::GetValue() const
 {
     return std::string{};

@@ -1,3 +1,4 @@
+#include "sheet.h"
 #include "common.h"
 #include "test_runner_p.h"
 
@@ -90,7 +91,8 @@ namespace {
 
         std::ostringstream texts;
         sheet->PrintTexts(texts);
-        ASSERT_EQUAL(texts.str(), "=1/0\t\nmeow\t=1+2\n");
+        std::string text = texts.str();
+        ASSERT_EQUAL(text, "=1/0\t\nmeow\t=1+2\n");
 
         std::ostringstream values;
         sheet->PrintValues(values);
@@ -98,6 +100,50 @@ namespace {
 
         sheet->ClearCell("B2"_pos);
         ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{2, 1}));
+    }
+
+    void Test_01() {
+        auto sheet = CreateSheet();
+        sheet->SetCell("A1"_pos, "=(1+2)*3");
+        sheet->SetCell("B1"_pos, "=1+2*3");
+        sheet->SetCell("A2"_pos, "some");
+        sheet->SetCell("B2"_pos, "text");
+        sheet->SetCell("C2"_pos, "here");
+        sheet->SetCell("C3"_pos, "\'and");
+        sheet->SetCell("D3"_pos, "\'here");
+        sheet->SetCell("B5"_pos, "=1/0");
+
+        auto size = sheet->GetPrintableSize();
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{5, 4}));
+        {
+            std::ostringstream oss;
+            sheet->PrintTexts(oss);
+            std::string str = oss.str();
+            ASSERT_EQUAL(str, "=(1+2)*3\t=1+2*3\t\t\nsome\ttext\there\t\n\t\t'and\t'here\n\t\t\t\n\t=1/0\t\t\n");
+        }
+        {
+            std::ostringstream oss;
+            sheet->PrintValues(oss);
+            std::string str = oss.str();
+            ASSERT_EQUAL(str, "9\t7\t\t\nsome\ttext\there\t\n\t\tand\there\n\t\t\t\n\t#DIV/0!\t\t\n");
+        }
+        sheet->ClearCell("B5"_pos);
+
+        size = sheet->GetPrintableSize();
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{3, 4}));
+
+        sheet->ClearCell("A1"_pos);
+        sheet->ClearCell("B1"_pos);
+        sheet->ClearCell("A2"_pos);
+        sheet->ClearCell("B2"_pos);
+        sheet->ClearCell("C2"_pos);
+        sheet->ClearCell("C3"_pos);
+        sheet->ClearCell("D3"_pos);
+
+        ASSERT_EQUAL(sheet->GetPrintableSize(), (Size{0, 0}));
+
+
+        sheet->ClearCell("B5"_pos);
     }
 
 }  // namespace
@@ -109,6 +155,7 @@ int main() {
     RUN_TEST(tr, TestSetCellPlainText);
     RUN_TEST(tr, TestClearCell);
     RUN_TEST(tr, TestPrint);
+    RUN_TEST(tr, Test_01);
     return 0;
 }
   

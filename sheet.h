@@ -1,13 +1,16 @@
 #pragma once
 
 #include "cell.h"
-#include "common.h"
 
 #include <functional>
+#include <unordered_map>
+#include <deque>
+#include <map>
 
 class Sheet : public SheetInterface {
 public:
-    ~Sheet();
+    Sheet() = default;
+    ~Sheet() = default;
 
     void SetCell(Position pos, std::string text) override;
 
@@ -20,10 +23,22 @@ public:
 
     void PrintValues(std::ostream& output) const override;
     void PrintTexts(std::ostream& output) const override;
-
-    // Можете дополнить ваш класс нужными полями и методами
-
-
 private:
-    // Можете дополнить ваш класс нужными полями и методами
+    enum class TypeOfCell
+    {
+        NONE,
+        TEXT,
+        VALUE
+    };
+
+    void RemoveOneFrom(std::map<int, int> &map, int row);
+    void PrintRowTo(std::ostream &ostream, int row, TypeOfCell type) const;
+    void PrintTo(std::ostream &output, TypeOfCell type) const;
+
+    std::unordered_map<Position, Cell, PositionHasher> sheet_;
+    std::map<Position, Cell*> sheet_map_;
+    // row, number of rows
+    std::map<int, int> row_count_;
+    // col, number of cols
+    std::map<int, int> col_count_;
 };
