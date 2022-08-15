@@ -239,7 +239,7 @@ namespace ASTImpl {
                 return EP_UNARY;
             }
 
-// Реализуйте метод Evaluate() для унарных операций.
+            // Реализуйте метод Evaluate() для унарных операций.
             double Evaluate() const override
             {
                 double result{};

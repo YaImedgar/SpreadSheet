@@ -8,7 +8,7 @@
 #include <stdexcept>
 
 namespace ASTImpl {
-class Expr;
+    class Expr;
 }
 
 class ParsingError : public std::runtime_error {
@@ -28,6 +28,7 @@ public:
 
 private:
     std::unique_ptr<ASTImpl::Expr> root_expr_;
+    std::forward_list<Position> cells_;
 };
 
 FormulaAST ParseFormulaAST(std::istream& in);

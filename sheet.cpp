@@ -25,7 +25,7 @@ void Sheet::SetCell(Position pos, std::string text)
         return ;
     }
     auto& cell = sheet_[pos];
-    cell.Set(std::move(text));
+    //cell.Set(std::move(text));
 }
 
 const CellInterface* Sheet::GetCell(Position pos) const

@@ -46,11 +46,11 @@ public:
     Cell() = default;
     ~Cell() = default;
     Cell(std::string text);
-    void Set(std::string text) override;
     void Clear();
 
     Value GetValue() const override;
     std::string GetText() const override;
+    std::vector<Position> GetReferencedCells() const override;
 private:
     std::unique_ptr<Impl> impl_;
 };

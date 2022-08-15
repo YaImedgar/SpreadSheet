@@ -5,7 +5,7 @@
 #include <string>
 #include <optional>
 
-void Cell::Set(std::string text)
+/*void Cell::Set(std::string text)
 {
     if (text.empty()) // empty
     {
@@ -20,7 +20,7 @@ void Cell::Set(std::string text)
     }
 
     impl_ = std::make_unique<TextImpl>(text);
-}
+}*/
 
 void Cell::Clear()
 {
@@ -39,7 +39,7 @@ std::string Cell::GetText() const
 
 Cell::Cell(std::string text)
 {
-    Set(std::move(text));
+    //Set(std::move(text));
 }
 
 Impl::Value EmptyImpl::GetValue() const
