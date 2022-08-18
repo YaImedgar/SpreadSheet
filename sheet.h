@@ -1,11 +1,14 @@
 #pragma once
 
+#include "common.h"
 #include "cell.h"
 
 #include <functional>
 #include <unordered_map>
 #include <deque>
 #include <map>
+
+class Cell;
 
 class Sheet : public SheetInterface {
 public:

@@ -10,9 +10,11 @@
 #include <optional>
 #include <sstream>
 
-namespace ASTImpl {
+namespace ASTImpl
+{
 
-    enum ExprPrecedence {
+    enum ExprPrecedence
+    {
         EP_ADD,
         EP_SUB,
         EP_MUL,
@@ -23,7 +25,8 @@ namespace ASTImpl {
     };
 
 // a bit is set when the parentheses are needed
-    enum PrecedenceRule {
+    enum PrecedenceRule
+    {
         PR_NONE = 0b00,                // never needed
         PR_LEFT = 0b01,                // needed for a left child
         PR_RIGHT = 0b10,               // needed for a right child
@@ -59,45 +62,60 @@ namespace ASTImpl {
 // +(A * B) - always okay (the resulting binary op has the highest grammatic precedence)
 // +(A / B) - always okay (the resulting binary op has the highest grammatic precedence)
     constexpr PrecedenceRule PRECEDENCE_RULES[EP_END][EP_END] = {
-            /* EP_ADD */ {PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
-            /* EP_SUB */ {PR_RIGHT, PR_RIGHT, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
-            /* EP_MUL */ {PR_BOTH, PR_BOTH, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
-            /* EP_DIV */ {PR_BOTH, PR_BOTH, PR_RIGHT, PR_RIGHT, PR_NONE, PR_NONE},
-            /* EP_UNARY */ {PR_BOTH, PR_BOTH, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
-            /* EP_ATOM */ {PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
+        /* EP_ADD */ {PR_NONE,  PR_NONE,  PR_NONE,  PR_NONE,  PR_NONE, PR_NONE},
+        /* EP_SUB */
+                     {PR_RIGHT, PR_RIGHT, PR_NONE,  PR_NONE,  PR_NONE, PR_NONE},
+        /* EP_MUL */
+                     {PR_BOTH,  PR_BOTH,  PR_NONE,  PR_NONE,  PR_NONE, PR_NONE},
+        /* EP_DIV */
+                     {PR_BOTH,  PR_BOTH,  PR_RIGHT, PR_RIGHT, PR_NONE, PR_NONE},
+        /* EP_UNARY */
+                     {PR_BOTH,  PR_BOTH,  PR_NONE,  PR_NONE,  PR_NONE, PR_NONE},
+        /* EP_ATOM */
+                     {PR_NONE,  PR_NONE,  PR_NONE,  PR_NONE,  PR_NONE, PR_NONE},
     };
 
-    class Expr {
+    class Expr
+    {
     public:
         virtual ~Expr() = default;
-        virtual void Print(std::ostream& out) const = 0;
-        virtual void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const = 0;
-        virtual double Evaluate() const = 0;
+
+        virtual void Print(std::ostream &out) const = 0;
+
+        virtual void DoPrintFormula(std::ostream &out, ExprPrecedence precedence) const = 0;
+
+        virtual double Evaluate(const SheetInterface &sheet) const = 0;
 
         // higher is tighter
         virtual ExprPrecedence GetPrecedence() const = 0;
 
-        void PrintFormula(std::ostream& out, ExprPrecedence parent_precedence,
-                          bool right_child = false) const {
+        void PrintFormula(std::ostream &out, ExprPrecedence parent_precedence,
+                          bool right_child = false) const
+        {
             auto precedence = GetPrecedence();
             auto mask = right_child ? PR_RIGHT : PR_LEFT;
             bool parens_needed = PRECEDENCE_RULES[parent_precedence][precedence] & mask;
-            if (parens_needed) {
+            if (parens_needed)
+            {
                 out << '(';
             }
 
             DoPrintFormula(out, precedence);
 
-            if (parens_needed) {
+            if (parens_needed)
+            {
                 out << ')';
             }
         }
     };
 
-    namespace {
-        class BinaryOpExpr final : public Expr {
+    namespace
+    {
+        class BinaryOpExpr final : public Expr
+        {
         public:
-            enum Type : char {
+            enum Type : char
+            {
                 Add = '+',
                 Subtract = '-',
                 Multiply = '*',
@@ -106,12 +124,12 @@ namespace ASTImpl {
 
         public:
             explicit BinaryOpExpr(Type type, std::unique_ptr<Expr> lhs, std::unique_ptr<Expr> rhs)
-                    : type_(type)
-                    , lhs_(std::move(lhs))
-                    , rhs_(std::move(rhs)) {
+                : type_(type), lhs_(std::move(lhs)), rhs_(std::move(rhs))
+            {
             }
 
-            void Print(std::ostream& out) const override {
+            void Print(std::ostream &out) const override
+            {
                 out << '(' << static_cast<char>(type_) << ' ';
                 lhs_->Print(out);
                 out << ' ';
@@ -119,14 +137,17 @@ namespace ASTImpl {
                 out << ')';
             }
 
-            void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const override {
+            void DoPrintFormula(std::ostream &out, ExprPrecedence precedence) const override
+            {
                 lhs_->PrintFormula(out, precedence);
                 out << static_cast<char>(type_);
                 rhs_->PrintFormula(out, precedence, /* right_child = */ true);
             }
 
-            ExprPrecedence GetPrecedence() const override {
-                switch (type_) {
+            ExprPrecedence GetPrecedence() const override
+            {
+                switch (type_)
+                {
                     case Add:
                         return EP_ADD;
                     case Subtract:
@@ -142,9 +163,7 @@ namespace ASTImpl {
                 }
             }
 
-            // Реализуйте метод Evaluate() для бинарных операций.
-            // При делении на 0 выбрасывайте ошибку вычисления FormulaError
-            double Evaluate() const override
+            double Evaluate(const SheetInterface &sheet) const override
             {
                 double result{};
 
@@ -153,14 +172,14 @@ namespace ASTImpl {
                 if (lhs_ != nullptr)
                 {
                     is_lhs = true;
-                    lhs_value = lhs_->Evaluate();
+                    lhs_value = lhs_->Evaluate(sheet);
                     result = lhs_value;
                 }
 
                 if (rhs_ != nullptr)
                 {
                     is_rhs = true;
-                    rhs_value = rhs_->Evaluate();
+                    rhs_value = rhs_->Evaluate(sheet);
                     result = rhs_value;
                 }
 
@@ -177,8 +196,7 @@ namespace ASTImpl {
                         if (is_both)
                         {
                             result = lhs_value - rhs_value;
-                        }
-                        else if (is_lhs || is_rhs)
+                        } else if (is_lhs || is_rhs)
                         {
                             result = -result;
                         }
@@ -194,7 +212,7 @@ namespace ASTImpl {
                         {
                             if (rhs_value == 0)//|| std::isfinite(lhs_value / rhs_value))
                             {
-                                throw FormulaError("Divide by zero");
+                                throw FormulaError(FormulaError::Category::Div0);
                             }
 
                             result = lhs_value / rhs_value;
@@ -211,43 +229,48 @@ namespace ASTImpl {
             std::unique_ptr<Expr> rhs_;
         };
 
-        class UnaryOpExpr final : public Expr {
+        class UnaryOpExpr final : public Expr
+        {
         public:
-            enum Type : char {
+            enum Type : char
+            {
                 UnaryPlus = '+',
                 UnaryMinus = '-',
             };
 
         public:
             explicit UnaryOpExpr(Type type, std::unique_ptr<Expr> operand)
-                    : type_(type)
-                    , operand_(std::move(operand)) {
+                : type_(type), operand_(std::move(operand))
+            {
             }
 
-            void Print(std::ostream& out) const override {
+            void Print(std::ostream &out) const override
+            {
                 out << '(' << static_cast<char>(type_) << ' ';
                 operand_->Print(out);
                 out << ')';
             }
 
-            void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const override {
+            void DoPrintFormula(std::ostream &out, ExprPrecedence precedence) const override
+            {
                 out << static_cast<char>(type_);
                 operand_->PrintFormula(out, precedence);
             }
 
-            ExprPrecedence GetPrecedence() const override {
+            ExprPrecedence GetPrecedence() const override
+            {
                 return EP_UNARY;
             }
 
-            // Реализуйте метод Evaluate() для унарных операций.
-            double Evaluate() const override
+            double Evaluate(const SheetInterface &sheet) const override
             {
                 double result{};
-                
+
                 if (operand_ != nullptr)
                 {
-                    result = operand_->Evaluate();
-                    switch (type_) {
+                    result = operand_->Evaluate(sheet);
+                    switch (type_)
+                    {
                         case UnaryPlus:
                             result = +result;
                             break;
@@ -256,7 +279,7 @@ namespace ASTImpl {
                             break;
                     }
                 }
-                
+
                 return result;
             }
 
@@ -265,26 +288,70 @@ namespace ASTImpl {
             std::unique_ptr<Expr> operand_;
         };
 
-        class NumberExpr final : public Expr {
+        class CellExpr final : public Expr
+        {
         public:
-            explicit NumberExpr(double value)
-                    : value_(value) {
+            explicit CellExpr(const Position *cell)
+                : cell_(cell)
+            {
             }
 
-            void Print(std::ostream& out) const override {
-                out << value_;
+            void Print(std::ostream &out) const override
+            {
+                if (!cell_->IsValid())
+                {
+                    out << FormulaError::Category::Ref;
+                } else
+                {
+                    out << cell_->ToString();
+                }
             }
 
-            void DoPrintFormula(std::ostream& out, ExprPrecedence /* precedence */) const override {
-                out << value_;
+            void DoPrintFormula(std::ostream &out, ExprPrecedence /* precedence */) const override
+            {
+                Print(out);
             }
 
-            ExprPrecedence GetPrecedence() const override {
+            ExprPrecedence GetPrecedence() const override
+            {
                 return EP_ATOM;
             }
 
-// Для чисел метод возвращает значение числа.
-            double Evaluate() const override {
+            double Evaluate(const SheetInterface &sheet) const override
+            {
+                return 0;
+            }
+
+        private:
+            const Position *cell_;
+        };
+
+        class NumberExpr final : public Expr
+        {
+        public:
+            explicit NumberExpr(double value)
+                : value_(value)
+            {
+            }
+
+            void Print(std::ostream &out) const override
+            {
+                out << value_;
+            }
+
+            void DoPrintFormula(std::ostream &out, ExprPrecedence /* precedence */) const override
+            {
+                out << value_;
+            }
+
+            ExprPrecedence GetPrecedence() const override
+            {
+                return EP_ATOM;
+            }
+
+            double Evaluate(const SheetInterface &sheet) const override
+            {
+                // TODO
                 return value_;
             }
 
@@ -292,9 +359,11 @@ namespace ASTImpl {
             double value_;
         };
 
-        class ParseASTListener final : public FormulaBaseListener {
+        class ParseASTListener final : public FormulaBaseListener
+        {
         public:
-            std::unique_ptr<Expr> MoveRoot() {
+            std::unique_ptr<Expr> MoveRoot()
+            {
                 assert(args_.size() == 1);
                 auto root = std::move(args_.front());
                 args_.clear();
@@ -302,16 +371,24 @@ namespace ASTImpl {
                 return root;
             }
 
+            std::forward_list<Position> MoveCells()
+            {
+                return std::move(cells_);
+            }
+
         public:
-            void exitUnaryOp(FormulaParser::UnaryOpContext* ctx) override {
+            void exitUnaryOp(FormulaParser::UnaryOpContext *ctx) override
+            {
                 assert(args_.size() >= 1);
 
                 auto operand = std::move(args_.back());
 
                 UnaryOpExpr::Type type;
-                if (ctx->SUB()) {
+                if (ctx->SUB())
+                {
                     type = UnaryOpExpr::UnaryMinus;
-                } else {
+                } else
+                {
                     assert(ctx->ADD() != nullptr);
                     type = UnaryOpExpr::UnaryPlus;
                 }
@@ -320,12 +397,14 @@ namespace ASTImpl {
                 args_.back() = std::move(node);
             }
 
-            void exitLiteral(FormulaParser::LiteralContext* ctx) override {
+            void exitLiteral(FormulaParser::LiteralContext *ctx) override
+            {
                 double value = 0;
                 auto valueStr = ctx->NUMBER()->getSymbol()->getText();
                 std::istringstream in(valueStr);
                 in >> value;
-                if (!in) {
+                if (!in)
+                {
                     throw ParsingError("Invalid number: " + valueStr);
                 }
 
@@ -333,7 +412,22 @@ namespace ASTImpl {
                 args_.push_back(std::move(node));
             }
 
-            void exitBinaryOp(FormulaParser::BinaryOpContext* ctx) override {
+            void exitCell(FormulaParser::CellContext *ctx) override
+            {
+                auto value_str = ctx->CELL()->getSymbol()->getText();
+                auto value = Position::FromString(value_str);
+                if (!value.IsValid())
+                {
+                    throw FormulaException("Invalid position: " + value_str);
+                }
+
+                cells_.push_front(value);
+                auto node = std::make_unique<CellExpr>(&cells_.front());
+                args_.push_back(std::move(node));
+            }
+
+            void exitBinaryOp(FormulaParser::BinaryOpContext *ctx) override
+            {
                 assert(args_.size() >= 2);
 
                 auto rhs = std::move(args_.back());
@@ -342,13 +436,17 @@ namespace ASTImpl {
                 auto lhs = std::move(args_.back());
 
                 BinaryOpExpr::Type type;
-                if (ctx->ADD()) {
+                if (ctx->ADD())
+                {
                     type = BinaryOpExpr::Add;
-                } else if (ctx->SUB()) {
+                } else if (ctx->SUB())
+                {
                     type = BinaryOpExpr::Subtract;
-                } else if (ctx->MUL()) {
+                } else if (ctx->MUL())
+                {
                     type = BinaryOpExpr::Multiply;
-                } else {
+                } else
+                {
                     assert(ctx->DIV() != nullptr);
                     type = BinaryOpExpr::Divide;
                 }
@@ -357,20 +455,24 @@ namespace ASTImpl {
                 args_.back() = std::move(node);
             }
 
-            void visitErrorNode(antlr4::tree::ErrorNode* node) override {
+            void visitErrorNode(antlr4::tree::ErrorNode *node) override
+            {
                 throw ParsingError("Error when parsing: " + node->getSymbol()->getText());
             }
 
         private:
             std::vector<std::unique_ptr<Expr>> args_;
+            std::forward_list<Position> cells_;
         };
 
-        class BailErrorListener : public antlr4::BaseErrorListener {
+        class BailErrorListener : public antlr4::BaseErrorListener
+        {
         public:
-            void syntaxError(antlr4::Recognizer* /* recognizer */, antlr4::Token* /* offendingSymbol */,
-                             size_t /* line */, size_t /* charPositionInLine */, const std::string& msg,
+            void syntaxError(antlr4::Recognizer * /* recognizer */, antlr4::Token * /* offendingSymbol */,
+                             size_t /* line */, size_t /* charPositionInLine */, const std::string &msg,
                              std::exception_ptr /* e */
-            ) override {
+            ) override
+            {
                 throw ParsingError("Error when lexing: " + msg);
             }
         };
@@ -378,7 +480,8 @@ namespace ASTImpl {
     }  // namespace
 }  // namespace ASTImpl
 
-FormulaAST ParseFormulaAST(std::istream& in) {
+FormulaAST ParseFormulaAST(std::istream &in)
+{
     using namespace antlr4;
 
     ANTLRInputStream input(in);
@@ -395,36 +498,46 @@ FormulaAST ParseFormulaAST(std::istream& in) {
     parser.setErrorHandler(error_handler);
     parser.removeErrorListeners();
 
-    tree::ParseTree* tree = parser.main();
+    tree::ParseTree *tree = parser.main();
     ASTImpl::ParseASTListener listener;
     tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
-    return FormulaAST(listener.MoveRoot());
+    return FormulaAST(listener.MoveRoot(), listener.MoveCells());
 }
 
-FormulaAST ParseFormulaAST(const std::string& in_str) {
+FormulaAST ParseFormulaAST(const std::string &in_str)
+{
     std::istringstream in(in_str);
-    try {
-        return ParseFormulaAST(in);
-    } catch (const std::exception& exc) {
-        std::throw_with_nested(FormulaException(exc.what()));
+    return ParseFormulaAST(in);
+}
+
+void FormulaAST::PrintCells(std::ostream &out) const
+{
+    for (auto cell: cells_)
+    {
+        out << cell.ToString() << ' ';
     }
 }
 
-void FormulaAST::Print(std::ostream& out) const {
+void FormulaAST::Print(std::ostream &out) const
+{
     root_expr_->Print(out);
 }
 
-void FormulaAST::PrintFormula(std::ostream& out) const {
+void FormulaAST::PrintFormula(std::ostream &out) const
+{
     root_expr_->PrintFormula(out, ASTImpl::EP_ATOM);
 }
 
-double FormulaAST::Execute() const {
-    return root_expr_->Evaluate();
+double FormulaAST::Execute(const SheetInterface& sheet) const
+{
+    return root_expr_->Evaluate(sheet);
 }
 
-FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr)
-        : root_expr_(std::move(root_expr)) {
+FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr, std::forward_list<Position> cells)
+    : root_expr_(std::move(root_expr)), cells_(std::move(cells))
+{
+    cells_.sort();  // to avoid sorting in GetReferencedCells
 }
 
 FormulaAST::~FormulaAST() = default;

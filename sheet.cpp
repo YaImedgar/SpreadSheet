@@ -17,15 +17,16 @@ void Sheet::SetCell(Position pos, std::string text)
 
     if (!sheet_.count(pos))
     {
-        sheet_.emplace(std::make_pair(pos, text));
-        auto cell = &sheet_[pos];
-        sheet_map_[pos] = cell;
+        sheet_.emplace(pos, text);
+        // TODO
+        // blank text
+        sheet_map_[pos] = &sheet_[pos];;
         row_count_[pos.row]++;
         col_count_[pos.col]++;
         return ;
     }
     auto& cell = sheet_[pos];
-    //cell.Set(std::move(text));
+    cell.Set(std::move(text));
 }
 
 const CellInterface* Sheet::GetCell(Position pos) const

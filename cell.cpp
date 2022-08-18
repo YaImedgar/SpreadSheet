@@ -5,7 +5,7 @@
 #include <string>
 #include <optional>
 
-/*void Cell::Set(std::string text)
+void Cell::Set(std::string text)
 {
     if (text.empty()) // empty
     {
@@ -15,12 +15,12 @@
 
     if (text.size() > 1 && text[0] == FORMULA_SIGN)
     {
-        impl_ = std::make_unique<FormulaImpl>(text);
+        impl_ = std::make_unique<FormulaImpl>(*parent_sheet_.value(), text);
         return ;
     }
 
     impl_ = std::make_unique<TextImpl>(text);
-}*/
+}
 
 void Cell::Clear()
 {
@@ -39,7 +39,14 @@ std::string Cell::GetText() const
 
 Cell::Cell(std::string text)
 {
-    //Set(std::move(text));
+    Set(std::move(text));
+}
+
+std::vector<Position> Cell::GetReferencedCells() const
+{
+    // TODO
+    assert(false);
+    return {};
 }
 
 Impl::Value EmptyImpl::GetValue() const
@@ -52,14 +59,15 @@ std::string EmptyImpl::GetText() const
     return std::string();
 }
 
-FormulaImpl::FormulaImpl(std::string expression)
+FormulaImpl::FormulaImpl(const SheetInterface& sheet, std::string expression)
+    : parent_sheet_(sheet)
 {
     formula_ = ParseFormula(expression.substr(1));
 }
 
 Impl::Value FormulaImpl::GetValue() const
 {
-    auto raw_value = formula_->Evaluate();
+    auto raw_value = formula_->Evaluate(parent_sheet_);
     if (std::holds_alternative<double>(raw_value))
     {
         return std::get<double>(raw_value);
@@ -73,20 +81,20 @@ std::string FormulaImpl::GetText() const
 }
 
 TextImpl::TextImpl(std::string expression)
-    : expression_(std::move(expression))
+    : text_(std::move(expression))
 {}
 
 Impl::Value TextImpl::GetValue() const
 {
-    if (expression_[0] == ESCAPE_SIGN)
+    if (text_[0] == ESCAPE_SIGN)
     {
-        return expression_.substr(1);
+        return text_.substr(1);
     }
 
-    return expression_;
+    return text_;
 }
 
 std::string TextImpl::GetText() const
 {
-    return expression_;
+    return text_;
 }
